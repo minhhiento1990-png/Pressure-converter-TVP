@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>Pressure Pro - Tosoh</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;600;700;900&display=swap');
+        body { 
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-top { padding-top: env(safe-area-inset-top); }
+        input { user-select: text; }
+    </style>
+</head>
+<body class="bg-gray-50 antialiased overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const UNITS = {
+            psi: { label: "psi (lb/in²)", rate: 1 },
+            bar: { label: "Bar", rate: 0.0689476 },
+            mpa: { label: "MPa", rate: 0.00689476 },
+            kpa: { label: "kPa", rate: 6.89476 },
+            atm: { label: "Atm", rate: 0.068046 },
+            kgcm2: { label: "kg/cm²", rate: 0.070307 }
+        };
+
+        function App() {
+            const [value, setValue] = useState('1');
+            const [fromUnit, setFromUnit] = useState('psi');
+            const [toUnit, setToUnit] = useState('kpa');
+            const [copied, setCopied] = useState(false);
+
+            const result = useMemo(() => {
+                const num = parseFloat(value);
+                if (isNaN(num)) return 0;
+                // Convert to base (psi) then to target
+                return (num / UNITS[fromUnit].rate) * UNITS[toUnit].rate;
+            }, [value, fromUnit, toUnit]);
+
+            const handleSwap = () => {
+                const prevFrom = fromUnit;
+                setFromUnit(toUnit);
+                setToUnit(prevFrom);
+            };
+
+            const copyResult = () => {
+                const text = result.toFixed(4);
+                const el = document.createElement('textarea');
+                el.value = text;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+            };
+
+            return (
+                <div className="h-screen flex flex-col bg-slate-50">
+                    {/* Header: iOS Style */}
+                    <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white safe-top shadow-md">
+                        <div className="px-6 py-6">
+                            <h1 className="text-2xl font-black tracking-tight italic">PRESSURE PRO</h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                <p className="text-blue-100 text-[10px] font-bold uppercase tracking-[0.2em]">Tosoh Engineering Toolkit</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+                        {/* Input Section */}
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Giá trị đầu vào</label>
+                            <input 
+                                type="number" 
+                                inputMode="decimal"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                className="w-full text-5xl font-bold text-gray-800 outline-none bg-transparent"
+                                placeholder="0"
+                            />
+                            <div className="mt-4 flex items-center justify-between border-t pt-4">
+                                <span className="text-sm font-bold text-blue-600">Đơn vị gốc:</span>
+                                <select 
+                                    value={fromUnit} 
+                                    onChange={(e) => setFromUnit(e.target.value)}
+                                    className="bg-gray-100 px-4 py-2 rounded-xl font-bold text-gray-700 outline-none appearance-none"
+                                >
+                                    {Object.entries(UNITS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Swap Button Area */}
+                        <div className="flex justify-center -my-8 relative z-10">
+                            <button 
+                                onClick={handleSwap}
+                                className="bg-white text-blue-600 p-4 rounded-full shadow-xl active:scale-90 transition-transform border-4 border-slate-50"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"/></svg>
+                            </button>
+                        </div>
+
+                        {/* Result Section */}
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                            <div className="flex items-center justify-between mb-4 border-b pb-4">
+                                <span className="text-sm font-bold text-blue-600">Chuyển sang:</span>
+                                <select 
+                                    value={toUnit} 
+                                    onChange={(e) => setToUnit(e.target.value)}
+                                    className="bg-gray-100 px-4 py-2 rounded-xl font-bold text-gray-700 outline-none appearance-none"
+                                >
+                                    {Object.entries(UNITS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                </select>
+                            </div>
+                            
+                            <div 
+                                onClick={copyResult}
+                                className="relative py-8 bg-blue-50 rounded-2xl border-2 border-dashed border-blue-200 text-center active:bg-blue-100 transition-colors"
+                            >
+                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">Kết quả quy đổi</label>
+                                <div className="text-5xl font-black text-blue-900 truncate px-4">
+                                    {result.toLocaleString(undefined, { maximumFractionDigits: 5 })}
+                                </div>
+                                <div className="mt-2 font-bold text-blue-600 text-lg uppercase tracking-widest">{toUnit}</div>
+                                
+                                {copied && (
+                                    <div className="absolute inset-0 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl animate-pulse">
+                                        ĐÃ SAO CHÉP!
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 text-center safe-bottom">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] leading-relaxed">
+                            Engineered for Tosoh Professionals<br/>
+                            Precision Control • API 620 Standard
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
